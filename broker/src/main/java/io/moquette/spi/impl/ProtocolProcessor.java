@@ -470,7 +470,7 @@ public class ProtocolProcessor {
     /**
      * Specialized version to publish will testament message.
      */
-    private void forwardPublishWill(WillMessage will, String clientID) {
+    private void forwardPublishWill(WillMessage will, String clientID, String username) {
         //it has just to publish the message downstream to the subscribers
         //NB it's a will publish, it needs a PacketIdentifier for this conn, default to 1
         Integer messageId = null;
@@ -482,6 +482,13 @@ public class ProtocolProcessor {
         tobeStored.setClientID(clientID);
         tobeStored.setMessageID(messageId);
         route2Subscribers(tobeStored);
+
+        PublishMessage msg= new PublishMessage();
+        msg.setRetainFlag(will.isRetained());
+        msg.setTopicName(will.getTopic());
+        msg.setQos(will.getQos());
+        msg.setPayload(will.getPayload());
+        m_interceptor.notifyTopicPublished(msg, clientID, username);
     }
 
 
@@ -703,7 +710,8 @@ public class ProtocolProcessor {
         //publish the Will message (if any) for the clientID
         if (!sessionStolen && m_willStore.containsKey(clientID)) {
             WillMessage will = m_willStore.get(clientID);
-            forwardPublishWill(will, clientID);
+            String username = NettyUtils.userName(channel);
+            forwardPublishWill(will, clientID, username);
             m_willStore.remove(clientID);
         }
     }
